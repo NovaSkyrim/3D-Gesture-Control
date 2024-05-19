@@ -12,6 +12,13 @@ L'évolution constante des interfaces interactives ouvre de nouvelles possibilit
 - **MediaPipe** : Pour la détection de main et la reconnaissance de gestes à l'aide de modèles pré-entraînés.
 - **Pygame** et **OpenGL** : Pour l'affichage et la manipulation des modèles 3D.
 
+<div style="text-align: center;">
+  <img src="Logo_OpenCV.png" alt="OpenCV Logo" style="height: 100px; vertical-align: middle;">
+  <img src="Logo_Mediapipe.png" alt="MediaPipe Logo" style="height: 100px; vertical-align: middle;">
+  <img src="Logo_Pygame.png" alt="Pygame Logo" style="height: 100px; vertical-align: middle;">
+  <img src="Logo_OpenGL.png" alt="OpenGL Logo" style="height: 100px; vertical-align: middle;">
+</div>
+
 ## Fonctionnalités
 
 1. **Détection de Main** : Utilisation de MediaPipe pour détecter les mains dans le flux vidéo de la webcam.

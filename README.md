@@ -30,4 +30,4 @@ Les contributions sont les bienvenues ! Si vous souhaitez contribuer à ce proje
 
 ## Auteurs
 
-Ce projet a été développé par [Maëva Desbats, Clément Coutant et Thomas Strinati].
+Ce projet a été développé par Maëva Desbats, Clément Coutant et Thomas Strinati.

@@ -15,7 +15,7 @@ L'évolution constante des interfaces interactives ouvre de nouvelles possibilit
 <div style="text-align: center;">
   <img src="Logo_OpenCV.png" alt="OpenCV Logo" style="height: 100px; vertical-align: middle;">
   <img src="Logo_Mediapipe.png" alt="MediaPipe Logo" style="height: 100px; vertical-align: middle;">
-  <img src="Logo_Pygame.png" alt="Pygame Logo" style="height: 100px; vertical-align: middle;">
+  <img src="Logo_Pygame.png" alt="Pygame Logo" style="height: 80px; vertical-align: middle;">
   <img src="Logo_OpenGL.png" alt="OpenGL Logo" style="height: 100px; vertical-align: middle;">
 </div>
 

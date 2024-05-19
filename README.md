@@ -1,6 +1,6 @@
-# Gestur3D
+# 3D Gesture Control
 
-Gestur3D est une application conçue pour permettre la manipulation intuitive d'objets 3D en utilisant des gestes simples et ergonomiques détectés par la caméra de l'ordinateur.
+3D Gesture Control est une application conçue pour permettre la manipulation intuitive d'objets 3D en utilisant des gestes simples et ergonomiques détectés par la caméra de l'ordinateur.
 
 ## Introduction
 

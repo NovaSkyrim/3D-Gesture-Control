@@ -30,6 +30,7 @@ L'évolution constante des interfaces interactives ouvre de nouvelles possibilit
 
 1. Clonez le dépôt GitHub sur votre machine locale.
 2. Lancez l'application en exécutant `app.py`.
+3. Vous pouvez à présent sélectionner le fichier `servercomputer.obj` pour intéragir avec lui.
 
 ## Contribution
 

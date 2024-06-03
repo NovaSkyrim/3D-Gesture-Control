@@ -248,10 +248,10 @@ def main():
                     wrist_y = landmark_list[0][1]
 
                     if counter_translation > 10:
-                        tx = 5 / 11 * wrist_x - 250
-                        ty = -5 / 8 * wrist_y + 187.5
+                        tx = 22.7 * wrist_x - 14136
+                        ty = -29.2 * wrist_y + 8750
 
-                    zpos = (landmark_list[0][1] - landmark_list[9][1]) * 9 / 100 - 2.5
+                    zpos = (landmark_list[0][1] - landmark_list[9][1]) * 2.5 + 100
 
             # dans le cas où le signe de Zoom est détecté
                 if keypoint_classifier_labels[hand_sign_id] == "Zoom":

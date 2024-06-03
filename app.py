@@ -253,10 +253,10 @@ def main():
                     wrist_y = landmark_list[0][1]
 
                     if counter_translation > 10:
-                        tx = 5 / 11 * wrist_x - 250
-                        ty = -5 / 8 * wrist_y + 187.5
+                        tx = 22.7 * wrist_x - 14136
+                        ty = -29.2 * wrist_y + 8750
 
-                    zpos = (landmark_list[0][1] - landmark_list[9][1]) * 9 / 100 - 2.5
+                    zpos = (landmark_list[0][1] - landmark_list[9][1]) * 2.5 + 100
 
             # dans le cas où le signe de Zoom est détecté
                 if keypoint_classifier_labels[hand_sign_id] == "Zoom":
@@ -266,11 +266,11 @@ def main():
 
                     # zoom avant
                     if landmark_list[8][1] > landmark_list[0][1]:
-                        zpos += 0.1
+                        zpos += 5
 
                     # zoom arrière
                     else:
-                        zpos -= 0.1
+                        zpos -= 5
 
             # cas où le signe de Reset est détecté
                 if keypoint_classifier_labels[hand_sign_id] == "Reset":
@@ -280,9 +280,9 @@ def main():
 
                     # réinitialisation de la position de l'objet 3D
                     if counter_reset > 25:
-                        rx, ry, rz = (0, 0, 0)
-                        tx, ty = (0, 0)
-                        zpos = 10
+                        rx, ry, rz = (0, 0, 90)
+                        tx, ty, tz = (-3000, 0, 0)
+                        zpos = 600
 
             # signe pour fermer l'application
                 if keypoint_classifier_labels[hand_sign_id] == "Exit":

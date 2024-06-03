@@ -1,11 +1,8 @@
-import sys
 import pygame
 from pygame.locals import *
-from pygame.constants import *
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
-from objloader import *
 import csv
 import copy
 import argparse
@@ -19,7 +16,6 @@ import mediapipe as mp
 
 from utils import CvFpsCalc
 from model import KeyPointClassifier
-from model import PointHistoryClassifier
 
 from PyQt5.QtWidgets import QApplication, QFileDialog
 
@@ -57,6 +53,74 @@ def get_args():
     args = parser.parse_args()
 
     return args
+
+
+class OBJ:
+    def __init__(self, filename, swapyz=False):
+        """Loads a Wavefront OBJ file. """
+        self.vertices = []
+        self.normals = []
+        self.faces = []
+
+        for line in open(filename, "r"):
+            if line.startswith('#'): continue
+            values = line.split()
+            if not values: continue
+            if values[0] == 'v':
+                v = list(map(float, values[1:4]))
+                if swapyz:
+                    v = v[0], v[2], v[1]
+                self.vertices.append(v)
+            elif values[0] == 'vn':
+                v = list(map(float, values[1:4]))
+                if swapyz:
+                    v = v[0], v[2], v[1]
+                self.normals.append(v)
+            elif values[0] == 'f':
+                face = []
+                norms = []
+                for v in values[1:]:
+                    w = v.split('/')
+                    face.append(int(w[0]))
+                    if len(w) >= 3 and len(w[2]) > 0:
+                        norms.append(int(w[2]))
+                    else:
+                        norms.append(0)
+                self.faces.append((face, norms))
+
+        self.gl_list = glGenLists(1)
+        glNewList(self.gl_list, GL_COMPILE)
+        glFrontFace(GL_CCW)
+        for face in self.faces:
+            vertices, normals = face
+
+            glBegin(GL_POLYGON)
+            for i in range(len(vertices)):
+                if normals[i] > 0:
+                    glNormal3fv(self.normals[normals[i] - 1])
+                glVertex3fv(self.vertices[vertices[i] - 1])
+            glEnd()
+        glEndList()
+
+
+class Camera:
+    def __init__(self, position, target, up):
+        self.position = position
+        self.target = target
+        self.up = up
+        self.zoom_factor = 1.0
+
+    def zoom(self, factor):
+        self.zoom_factor *= factor
+        self.position = [pos * factor for pos in self.position]
+        self.target = [tar * factor for tar in self.target]
+        self.up = [up * factor for up in self.up]
+        self.update_view_matrix()
+
+    def update_view_matrix(self):
+        glLoadIdentity()
+        gluLookAt(*self.position, *self.target, *self.up)
+
 
 pygame.init()
 viewport = (1200, 900)
@@ -116,8 +180,6 @@ def main():
 
     keypoint_classifier = KeyPointClassifier()
 
-    point_history_classifier = PointHistoryClassifier()
-
     # Lecture du fichier de labels
     with open('model/keypoint_classifier/keypoint_classifier_label.csv',
               encoding='utf-8-sig') as f:
@@ -130,17 +192,15 @@ def main():
     # Mesure des FPS
     cvFpsCalc = CvFpsCalc(buffer_len=10)
 
-    # Coordinate history #################################################################
+    # Coordinate history #
     history_length = 16
     point_history = deque(maxlen=history_length)
 
-
-
     mode = 0
 
-    rx, ry, rz = (0, 0, 90)
-    tx, ty, tz = (-3000, 0, 0)
-    zpos = 600
+    rx, ry, rz = (0, 0, 0)
+    tx, ty = (0, 0)
+    zpos = 10
 
     counter_translation = 0
     counter_reset = 0
@@ -159,7 +219,6 @@ def main():
         glLoadIdentity()
 
         # RENDER OBJECT
-        glScale(0.1, 0.1, 0.1)
         glTranslate(tx / 20., ty / 20., - zpos)
         glRotate(ry, 1, 0, 0)
         glRotate(rx, 0, 1, 0)
@@ -248,10 +307,10 @@ def main():
                     wrist_y = landmark_list[0][1]
 
                     if counter_translation > 10:
-                        tx = 22.7 * wrist_x - 14136
-                        ty = -29.2 * wrist_y + 8750
+                        tx = 5 / 11 * wrist_x - 250
+                        ty = -5 / 8 * wrist_y + 187.5
 
-                    zpos = (landmark_list[0][1] - landmark_list[9][1]) * 2.5 + 100
+                    zpos = (landmark_list[0][1] - landmark_list[9][1]) * 9 / 100 - 2.5
 
             # dans le cas où le signe de Zoom est détecté
                 if keypoint_classifier_labels[hand_sign_id] == "Zoom":
@@ -261,11 +320,11 @@ def main():
 
                     # zoom avant
                     if landmark_list[8][1] > landmark_list[0][1]:
-                        zpos += 5
+                        zpos += 0.1
 
                     # zoom arrière
                     else:
-                        zpos -= 5
+                        zpos -= 0.1
 
             # cas où le signe de Reset est détecté
                 if keypoint_classifier_labels[hand_sign_id] == "Reset":
@@ -275,9 +334,9 @@ def main():
 
                     # réinitialisation de la position de l'objet 3D
                     if counter_reset > 25:
-                        rx, ry, rz = (0, 0, 90)
-                        tx, ty, tz = (-3000, 0, 0)
-                        zpos = 600
+                        rx, ry, rz = (0, 0, 0)
+                        tx, ty = (0, 0)
+                        zpos = 10
 
             # signe pour fermer l'application
                 if keypoint_classifier_labels[hand_sign_id] == "Exit":
@@ -300,7 +359,7 @@ def main():
         else:
             point_history.append([0, 0])
 
-        debug_image = draw_point_history(debug_image, point_history)
+        
         debug_image = draw_info(debug_image, fps, mode, number)
 
         # Screen reflection #############################################################
@@ -639,14 +698,6 @@ def draw_info_text(image, brect, handedness, hand_sign_text):
 
     return image
 
-
-def draw_point_history(image, point_history):
-    for index, point in enumerate(point_history):
-        if point[0] != 0 and point[1] != 0:
-            cv.circle(image, (point[0], point[1]), 1 + int(index / 2),
-                      (152, 251, 152), 2)
-
-    return image
 
 
 def draw_info(image, fps, mode, number):

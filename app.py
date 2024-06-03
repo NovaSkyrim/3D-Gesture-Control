@@ -3,7 +3,6 @@ from pygame.locals import *
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
-from objloader import *
 import csv
 import copy
 import argparse
@@ -56,31 +55,108 @@ def get_args():
     return args
 
 
-pygame.init()
-viewport = (1200, 900)
+class OBJ:
+    def __init__(self, filename, swapyz=False):
+        """Loads a Wavefront OBJ file. """
+        self.vertices = []
+        self.normals = []
+        self.faces = []
+
+        for line in open(filename, "r"):
+            if line.startswith('#'): continue
+            values = line.split()
+            if not values: continue
+            if values[0] == 'v':
+                v = list(map(float, values[1:4]))
+                if swapyz:
+                    v = v[0], v[2], v[1]
+                self.vertices.append(v)
+            elif values[0] == 'vn':
+                v = list(map(float, values[1:4]))
+                if swapyz:
+                    v = v[0], v[2], v[1]
+                self.normals.append(v)
+            elif values[0] == 'f':
+                face = []
+                norms = []
+                for v in values[1:]:
+                    w = v.split('/')
+                    face.append(int(w[0]))
+                    if len(w) >= 3 and len(w[2]) > 0:
+                        norms.append(int(w[2]))
+                    else:
+                        norms.append(0)
+                self.faces.append((face, norms))
+
+        self.gl_list = glGenLists(1)
+        glNewList(self.gl_list, GL_COMPILE)
+        glFrontFace(GL_CCW)
+        for face in self.faces:
+            vertices, normals = face
+
+            glBegin(GL_POLYGON)
+            for i in range(len(vertices)):
+                if normals[i] > 0:
+                    glNormal3fv(self.normals[normals[i] - 1])
+                glVertex3fv(self.vertices[vertices[i] - 1])
+            glEnd()
+        glEndList()
+
+
+class Camera:
+    def __init__(self, position, target, up):
+        self.position = position
+        self.target = target
+        self.up = up
+        self.zoom_factor = 1.0
+
+    def zoom(self, factor):
+        self.zoom_factor *= factor
+        self.position = [pos * factor for pos in self.position]
+        self.target = [tar * factor for tar in self.target]
+        self.up = [up * factor for up in self.up]
+        self.update_view_matrix()
+
+    def update_view_matrix(self):
+        glLoadIdentity()
+        gluLookAt(*self.position, *self.target, *self.up)
+
+
+pygame.init() # Initialise le module Pygame
+viewport = (1200, 900) # Définir la taille de la fenêtre
+
+# Calculer la moitié de la largeur (hx) et de la hauteur (hy) du viewport
 hx = viewport[0] / 2
 hy = viewport[1] / 2
+
+# Créer une fenêtre d'affichage avec Pygame, avec les options OpenGL et DOUBLEBUF (double buffering pour un rendu plus fluide)
 srf = pygame.display.set_mode(viewport, OPENGL | DOUBLEBUF)
 
-glLightfv(GL_LIGHT0, GL_POSITION, (-40, 200, 100, 0.0))
-glLightfv(GL_LIGHT0, GL_AMBIENT, (0.2, 0.2, 0.2, 1.0))
-glLightfv(GL_LIGHT0, GL_DIFFUSE, (0.5, 0.5, 0.5, 1.0))
-glEnable(GL_LIGHT0)
-glEnable(GL_LIGHTING)
-glEnable(GL_COLOR_MATERIAL)
-glEnable(GL_DEPTH_TEST)
+# Définir les propriétés de la lumière GL_LIGHT0
+glLightfv(GL_LIGHT0, GL_POSITION, (-40, 200, 100, 0.0)) # Position de la lumière
+glLightfv(GL_LIGHT0, GL_AMBIENT, (0.2, 0.2, 0.2, 1.0)) # Composante ambiante de la lumière
+glLightfv(GL_LIGHT0, GL_DIFFUSE, (0.5, 0.5, 0.5, 1.0)) # Composante diffuse de la lumière
+glEnable(GL_LIGHT0) # Activer la lumière GL_LIGHT0
+glEnable(GL_LIGHTING) # Activer le système d'éclairage
+glEnable(GL_COLOR_MATERIAL) # Activer la gestion des matériaux par couleur
+glEnable(GL_DEPTH_TEST) # Activer le test de profondeur
 glShadeModel(GL_SMOOTH)  # most obj files expect to be smooth-shaded
 
 # LOAD OBJECT AFTER PYGAME INIT
 obj = OBJ(file_path, swapyz=True)
+
+# Créer une horloge pour gérer le taux de rafraîchissement de l'affichage
 clock = pygame.time.Clock()
 
-glMatrixMode(GL_PROJECTION)
-glLoadIdentity()
+glMatrixMode(GL_PROJECTION) # Définir la matrice de projection
+glLoadIdentity() # Réinitialiser la matrice de projection
+
+# Définir la perspective avec un champ de vision de 90 degrés, un ratio largeur/hauteur, et des plans de clipping proches et lointains
 width, height = viewport
 gluPerspective(90.0, width / float(height), 1, 100.0)
-glEnable(GL_DEPTH_TEST)
-glMatrixMode(GL_MODELVIEW)
+
+glEnable(GL_DEPTH_TEST) # Activer le test de profondeur
+glMatrixMode(GL_MODELVIEW) # Passer à la matrice de modèle/vue
 
 
 # Fonction principale
@@ -132,9 +208,9 @@ def main():
 
     mode = 0
 
-    rx, ry, rz = (0, 0, 90)
-    tx, ty, tz = (-3000, 0, 0)
-    zpos = 600
+    rx, ry, rz = (0, 0, 0)
+    tx, ty = (0, 0)
+    zpos = 10
 
     counter_translation = 0
     counter_reset = 0
@@ -142,25 +218,28 @@ def main():
 
     while True:
 
-        clock.tick(60)
+        clock.tick(60) # Limiter la boucle à 60 images par seconde
+        
         for e in pygame.event.get():
             if e.type == QUIT:
                 sys.exit()
             elif e.type == KEYDOWN and e.key == K_ESCAPE:
                 sys.exit()
-
+        
+        # Effacer les buffers de couleur et de profondeur pour préparer la nouvelle image
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        glLoadIdentity()
+        
+        glLoadIdentity() # Réinitialiser la matrice modèle/vue
 
         # RENDER OBJECT
-        glScale(0.1, 0.1, 0.1)
-        glTranslate(tx / 20., ty / 20., - zpos)
-        glRotate(ry, 1, 0, 0)
-        glRotate(rx, 0, 1, 0)
-        glRotate(rz, 0, 0, 1)
-        glCallList(obj.gl_list)
+        glScale(0.1, 0.1, 0.1) # Appliquer une échelle de 0.1 sur les axes X, Y et Z pour réduire la taille de l'objet
+        glTranslate(tx / 20., ty / 20., - zpos) # Appliquer une translation à l'objet selon les coordonnées tx, ty, et zpos
+        glRotate(ry, 1, 0, 0) # Appliquer une rotation à l'objet autour de l'axe Y (angle ry)
+        glRotate(rx, 0, 1, 0) # Appliquer une rotation à l'objet autour de l'axe X (angle rx)
+        glRotate(rz, 0, 0, 1) # Appliquer une rotation à l'objet autour de l'axe Z (angle rz)
+        glCallList(obj.gl_list) # Appeler la liste d'affichage de l'objet pour le rendre
 
-        pygame.display.flip()
+        pygame.display.flip() # Mettre à jour l'affichage Pygame avec le contenu des buffers
 
         fps = cvFpsCalc.get()
 

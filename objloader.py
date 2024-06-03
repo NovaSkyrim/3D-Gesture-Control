@@ -97,11 +97,6 @@ class OBJ:
                     glNormal3fv(self.normals[normals[i] - 1])
                 if texture_coords[i] > 0:
                     glTexCoord2fv(self.texcoords[texture_coords[i] - 1])
-                print("self.vertices:", self.vertices)
-                print("vertices:", vertices)
-                print("vertices[i] - 1:", vertices[i] - 1)
-                print("self.vertices[vertices[i] - 1]:", self.vertices[vertices[i] - 1])
-
                 glVertex3fv(self.vertices[vertices[i] - 1])
             glEnd()
         glDisable(GL_TEXTURE_2D)
